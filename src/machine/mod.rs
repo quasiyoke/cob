@@ -1,4 +1,6 @@
-use crate::payload::{Increment, Snapshot};
+use derive_more::{Display, Error};
+
+use crate::{payload::PriceNodes, Increment, Instrument, Snapshot, Timestamp};
 
 use part::BookPart;
 
@@ -7,20 +9,50 @@ mod part;
 pub struct OrderBookMachine {
     bids: BookPart,
     asks: BookPart,
+    instrument: Instrument,
+    timestamp: Timestamp,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Display, Error)]
+pub enum OrderBookError {
+    Crossed,
 }
 
 impl OrderBookMachine {
-    pub fn new(s: Snapshot) -> Self {
-        Self {
+    pub fn new(s: Snapshot) -> Result<Self, OrderBookError> {
+        let s: PriceNodes = s.into();
+        let instance = Self {
             bids: BookPart::new(s.bids),
             asks: BookPart::new(s.asks),
-        }
+            instrument: s.instrument,
+            timestamp: s.timestamp,
+        };
+        instance.check_invariants().map(|_: ()| instance)
     }
 
     pub fn apply(&mut self, inc: Increment) -> Result<(), OrderBookError> {
-        self.bids.apply(inc.bids)?;
-        self.asks.apply(inc.asks)?;
-        if let (Some(), Some()) {}
-        Ok(())
+        let inc: PriceNodes = inc.into();
+        self.bids.apply(&inc.bids)?;
+        self.asks.apply(&inc.asks)?;
+        self.timestamp = inc.timestamp;
+        self.check_invariants()
+    }
+
+    pub fn snapshot(&self) -> Snapshot {
+        Snapshot::new(
+            self.bids.iter(),
+            self.asks.iter(),
+            self.instrument.clone(),
+            self.timestamp.clone(),
+        )
+    }
+
+    fn check_invariants(&self) -> Result<(), OrderBookError> {
+        if let (Some(bid), Some(ask)) = (self.bids.best(), self.asks.best()) {
+            if bid.price >= ask.price {
+                return Err(OrderBookError::Crossed);
+            }
+        }
+        return Ok(());
     }
 }

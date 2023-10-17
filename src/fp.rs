@@ -1,8 +1,8 @@
-use fixnum::typenum::{Unsigned, U24};
+use fixnum::{typenum::U18, FixedPoint};
 
 type Precision = U18;
 
-pub type Fp = fixnum::FixedPoint<i128, Precision>;
+pub type Fp = FixedPoint<i128, Precision>;
 
 macro_rules! fp {
     ($value:literal) => {
@@ -10,4 +10,4 @@ macro_rules! fp {
     };
 }
 
-pub use fp;
+pub(crate) use fp;
