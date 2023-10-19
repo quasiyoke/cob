@@ -1,3 +1,5 @@
+use std::ops::{RangeFrom, RangeTo};
+
 use derive_more::{Display, Error};
 
 use crate::{payload::PriceNodes, Increment, Instrument, Snapshot, Timestamp};
@@ -7,8 +9,8 @@ use part::BookPart;
 mod part;
 
 pub struct OrderBookMachine {
-    bids: BookPart,
-    asks: BookPart,
+    bids: BookPart<RangeTo<()>>,
+    asks: BookPart<RangeFrom<()>>,
     instrument: Instrument,
     timestamp: Timestamp,
 }
@@ -16,6 +18,7 @@ pub struct OrderBookMachine {
 #[derive(Clone, Debug, Eq, PartialEq, Display, Error)]
 pub enum OrderBookError {
     Crossed,
+    UnknownPriceNodeDrop,
 }
 
 impl OrderBookMachine {
@@ -27,13 +30,14 @@ impl OrderBookMachine {
             instrument: s.instrument,
             timestamp: s.timestamp,
         };
-        instance.check_invariants().map(|_: ()| instance)
+        instance.check_invariants()?;
+        Ok(instance)
     }
 
     pub fn apply(&mut self, inc: Increment) -> Result<(), OrderBookError> {
         let inc: PriceNodes = inc.into();
-        self.bids.apply(&inc.bids)?;
-        self.asks.apply(&inc.asks)?;
+        self.bids.apply(inc.bids)?;
+        self.asks.apply(inc.asks)?;
         self.timestamp = inc.timestamp;
         self.check_invariants()
     }
@@ -53,6 +57,6 @@ impl OrderBookMachine {
                 return Err(OrderBookError::Crossed);
             }
         }
-        return Ok(());
+        Ok(())
     }
 }

@@ -1,8 +1,8 @@
-use derive_more::Into;
+use derive_more::{From, Into};
 
 use serde::{Deserialize, Serialize};
 
-use crate::fp::Fp;
+use crate::fp::{Fp, Zero};
 
 #[derive(Deserialize, Serialize)]
 #[serde(tag = "type", content = "payload")]
@@ -17,6 +17,7 @@ pub enum Message {
 #[derive(Deserialize, Into, Serialize)]
 pub struct Snapshot(PriceNodes);
 
+/// "Update" is an overused word.
 #[derive(Deserialize, Into, Serialize)]
 pub struct Increment(PriceNodes);
 
@@ -29,23 +30,23 @@ pub struct PriceNodes {
     pub timestamp: Timestamp,
 }
 
-#[derive(Clone, Copy, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub struct PriceNode {
     pub price: Price,
     pub size: Size,
 }
 
-#[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, From, Deserialize, Serialize)]
 pub struct Price(Fp);
 
-#[derive(Clone, Copy, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, From, Deserialize, Serialize)]
 pub struct Size(Fp);
 
 #[derive(Clone, Deserialize, Serialize)]
-pub struct Instrument(serde_json::Value); // TODO: parse instrument
+pub struct Instrument(serde_json::Value); // TODO (issue-XXX): parse instrument
 
 #[derive(Clone, Deserialize, Serialize)]
-pub struct Timestamp(serde_json::Value); // TODO: parse timestamp
+pub struct Timestamp(serde_json::Value); // TODO (issue-XXX): parse timestamp
 
 impl Snapshot {
     pub fn new(
@@ -61,4 +62,8 @@ impl Snapshot {
             timestamp,
         })
     }
+}
+
+impl Zero for Size {
+    const ZERO: Self = Self(Fp::ZERO);
 }

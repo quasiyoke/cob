@@ -2,6 +2,8 @@
 name = "order-book"
 version = "0.1.0"
 edition = "2021"
+description = "Order book machine with snapshot streamer."
+authors = ["Petr Ermishkin"]
 
 [dependencies]
 derive_more = "0.99"
